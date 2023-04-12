@@ -57,6 +57,8 @@
 
 DECLARE_int32(user_language);
 
+DECLARE_string(user_profile);
+
 DEFINE_double(time_scalar, 1.0,
               "Scalar used to speed or slow time (1x, 2x, 1/2x, etc).",
               "General");
@@ -73,6 +75,7 @@ DEFINE_bool(allow_game_relative_writes, false,
             "General");
 
 namespace xe {
+
 using namespace xe::literals;
 
 Emulator::GameConfigLoadCallback::GameConfigLoadCallback(Emulator& emulator)
@@ -369,11 +372,13 @@ X_STATUS Emulator::InstallContentPackage(const std::filesystem::path& path) {
   }
 
   std::filesystem::path installation_path =
-      content_root() / fmt::format("{:08X}", device->title_id()) /
+      content_root() / cvars::user_profile /
+      fmt::format("{:08X}", device->title_id()) /
       fmt::format("{:08X}", device->content_type()) / path.filename();
 
   std::filesystem::path header_path =
-      content_root() / fmt::format("{:08X}", device->title_id()) / "Headers" /
+      content_root() / cvars::user_profile /
+      fmt::format("{:08X}", device->title_id()) / "Headers" /
       fmt::format("{:08X}", device->content_type()) / path.filename();
 
   if (std::filesystem::exists(installation_path)) {
