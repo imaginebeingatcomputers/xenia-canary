@@ -382,6 +382,34 @@ X_HRESULT XgiApp::DispatchMessageSync(uint32_t message, uint32_t buffer_ptr,
             auto resultsHeader =
           memory_->TranslateVirtual<XSESSION_SEARCHRESULT_HEADER*>(
               data->pSearchResults);
+    case 0x000B0016: {
+      XELOGI("XSessionSearch");
+
+      int i = 0;
+      int j = 0;
+
+      struct message_data {
+        xe::be<uint32_t> proc_index;
+        xe::be<uint32_t> user_index;
+        xe::be<uint32_t> num_results;
+        xe::be<uint16_t> num_props;
+        xe::be<uint16_t> num_ctx;
+        xe::be<uint32_t> props_ptr;
+        xe::be<uint32_t> ctx_ptr;
+        xe::be<uint32_t> cbResultsBuffer;
+        xe::be<uint32_t> pSearchResults;
+        xe::be<uint32_t> num_users;
+      }* data = reinterpret_cast<message_data*>(buffer);
+
+      auto* pSearchContexts =
+          memory_->TranslateVirtual<XUSER_CONTEXT*>(data->ctx_ptr);
+
+      uint32_t results_ptr = data->pSearchResults + sizeof(XSESSION_SEARCHRESULT_HEADER);
+      auto* result = memory_->TranslateVirtual<XSESSION_SEARCHRESULT*>(results_ptr);
+
+            auto resultsHeader =
+          memory_->TranslateVirtual<XSESSION_SEARCHRESULT_HEADER*>(
+              data->pSearchResults);
 
 #pragma region Curl
       /*
