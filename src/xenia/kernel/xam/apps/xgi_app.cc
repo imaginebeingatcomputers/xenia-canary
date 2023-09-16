@@ -354,8 +354,13 @@ X_HRESULT XgiApp::DispatchMessageSync(uint32_t message, uint32_t buffer_ptr,
 
       return X_E_SUCCESS;
     }
-    case 0x000B001C: {
-      XELOGI("XSessionSearchEx");
+    case 0x000B001C: case 0x000B0016:{
+      if (message == 0x000B001C){
+        XELOGI("XSessionSearchEx");
+      }
+      else if (message == 0x000B0016){
+        XELOGI("XSessionSearch");
+      }
 
       int i = 0;
       int j = 0;
