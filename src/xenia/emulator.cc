@@ -894,9 +894,11 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
   auto null_paths = {std::string("\\Partition0"), std::string("\\Cache0"),
                      std::string("\\Cache1")};
   auto null_device =
-      std::make_unique<vfs::NullDevice>("\\Device\\Harddisk0", null_paths);
+      std::make_unique<vfs::HostPathDevice>("\\Device\\Harddisk0", null_paths, false);
   if (null_device->Initialize()) {
     file_system_->RegisterDevice(std::move(null_device));
+    file_system_->RegisterSymbolicLink("hdd0:", "\\Device\\Harddisk0\\Partition0")
+    file_system_->RegisterSymbolicLink("hdd0:", "\\Device\\Harddisk0\\Cache0")
   }
 
   // Reset state.
