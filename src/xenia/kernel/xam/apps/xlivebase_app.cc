@@ -65,6 +65,13 @@ X_HRESULT XLiveBaseApp::DispatchMessageSync(uint32_t message,
           buffer_ptr, buffer_length);
       return X_E_FAIL;
     }
+    case 0x00058035: {
+      // Required for 534507D4
+      XELOGD(
+        "XMsgInProcessCall({:08x}, {:08x}) unimplemented",
+        buffer_ptr, buffer_length);
+      return X_E_SUCCESS
+    }
     case 0x00058046: {
       // Required to be successful for 4D530910 to detect signed-in profile
       // Doesn't seem to set anything in the given buffer, probably only takes
