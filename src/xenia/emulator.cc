@@ -892,7 +892,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
   // to make sure any HostPathDevices are ready beforehand. (see comment above
   // cache:\ device registration for more info about why)
   auto null_device = std::make_unique<vfs::HostPathDevice>(
-    "\\Device\\Harddisk0\\Partition0", "partition0", false)
+    "\\Device\\Harddisk0\\Partition0", "partition0", false);
   if (null_device->Initialize()) {
     file_system_->RegisterDevice(std::move(null_device));
     file_system_->RegisterSymbolicLink("hdd0:", "\\Device\\Harddisk0\\partition0");
