@@ -895,7 +895,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
     "\\Device\\Harddisk0", "\\partition0", false);
   if (null_device->Initialize()) {
     file_system_->RegisterDevice(std::move(null_device));
-    file_system_->RegisterSymbolicLink("hdd0:", "\\Device\\Harddisk0\\partition0");
+    file_system_->RegisterSymbolicLink("d:", "\\Device\\Harddisk0\\partition0");
   }
 
   // Reset state.
