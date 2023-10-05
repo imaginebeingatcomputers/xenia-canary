@@ -891,12 +891,11 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
   // Partition1 will go to this. Registering during CompleteLaunch allows us
   // to make sure any HostPathDevices are ready beforehand. (see comment above
   // cache:\ device registration for more info about why)
-  auto null_paths = {std::string("\\Partition0"), std::string("\\Cache0"),
-                     std::string("\\Cache1")};
-  auto null_device =
-      std::make_unique<vfs::NullDevice>("\\Device\\Harddisk0", null_paths);
+  auto null_device = std::make_unique<vfs::HostPathDevice>(
+    "\\Device\\Harddisk0\\partition0", "partition0", false);
   if (null_device->Initialize()) {
     file_system_->RegisterDevice(std::move(null_device));
+    file_system_->RegisterSymbolicLink("hdd0:", "\\Device\\Harddisk0\\partition0");
   }
 
   // Reset state.
