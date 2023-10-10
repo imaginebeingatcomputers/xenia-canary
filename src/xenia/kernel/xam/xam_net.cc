@@ -412,6 +412,7 @@ dword_result_t NetDll_XNetStartup_entry(dword_t caller,
                                         pointer_t<XNetStartupParams> params) {
   if (params) {
     assert_true(params->cfgSizeOfStruct == sizeof(XNetStartupParams));
+    XELOGI("XNetStartupParams Config Flags: {}", params->cfgFlags );
     std::memcpy(&xnet_startup_params, params, sizeof(XNetStartupParams));
   }
 
@@ -583,7 +584,10 @@ DECLARE_XAM_EXPORT1(NetDll_WSACleanup, kNetworking, kImplemented);
 // Xbox shares space between normal error codes and WSA errors.
 // This under the hood returns directly value received from RtlGetLastError.
 dword_result_t NetDll_WSAGetLastError_entry() {
-  return XThread::GetLastError();
+  uint32_t last_error; 
+  last_error = XThread::GetLastError();
+  XELOGI("WSALastError: {}", last_error);
+  return last_error;
 }
 DECLARE_XAM_EXPORT1(NetDll_WSAGetLastError, kNetworking, kImplemented);
 
