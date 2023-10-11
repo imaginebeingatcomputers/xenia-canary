@@ -62,15 +62,22 @@ X_HRESULT XLiveBaseApp::DispatchMessageSync(uint32_t message,
       // XONLINE_SERVICE_INFO structure.
       XELOGD("CXLiveLogon::GetServiceInfo({:08X}, {:08X})", buffer_ptr,
              buffer_length);
-            XELOGD("CXLiveLogon::GetServiceInfo({:08X}, {:08X})", buffer_ptr, buffer_length);
 
       XONLINE_SERVICE_INFO* service_info =
           reinterpret_cast<XONLINE_SERVICE_INFO*>(
               memory_->TranslateVirtual(buffer_length));
       memset(service_info, 0, sizeof(XONLINE_SERVICE_INFO));
+      XELOGD("IP is {}", service_info->ip.s_addr);
       service_info->id = buffer_ptr;
       service_info->ip.s_addr = htonl(INADDR_LOOPBACK);
       return X_ERROR_SUCCESS;
+    }
+    case 0x00058008: {
+      // Required to be successful for 534507D4
+      XELOGD(
+        "XUserCheckPrivilege({:08x}, {:08x}) unimplemented",
+        buffer_ptr, buffer_length);
+      return X_E_SUCCESS;
     }
     case 0x00058020: {
       // 0x00058004 is called right before this.
@@ -89,9 +96,9 @@ X_HRESULT XLiveBaseApp::DispatchMessageSync(uint32_t message,
       return X_E_FAIL;
     }
     case 0x00058035: {
-      // Required for 534507D4
+      // Required to be successful for 534507D4
       XELOGD(
-        "XMsgInProcessCall({:08x}, {:08x}) unimplemented",
+        "XLiveBaseUnk58035({:08x}, {:08x}) unimplemented",
         buffer_ptr, buffer_length);
       return X_E_SUCCESS;
     }
