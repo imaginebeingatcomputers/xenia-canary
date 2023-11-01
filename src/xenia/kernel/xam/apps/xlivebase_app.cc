@@ -12,6 +12,21 @@
 #include "xenia/base/logging.h"
 #include "xenia/base/threading.h"
 
+#ifdef XE_PLATFORM_WIN32
+// NOTE: must be included last as it expects windows.h to already be included.
+#define _WINSOCK_DEPRECATED_NO_WARNINGS  // inet_addr
+#include <winsock2.h>                    // NOLINT(build/include_order)
+#elif XE_PLATFORM_LINUX
+#include <netinet/in.h>
+#endif
+
+struct XONLINE_SERVICE_INFO {
+  xe::be<uint32_t> id;
+  in_addr ip;
+  xe::be<uint16_t> port;
+  xe::be<uint16_t> unk;
+};
+
 namespace xe {
 namespace kernel {
 namespace xam {
@@ -47,7 +62,22 @@ X_HRESULT XLiveBaseApp::DispatchMessageSync(uint32_t message,
       // XONLINE_SERVICE_INFO structure.
       XELOGD("CXLiveLogon::GetServiceInfo({:08X}, {:08X})", buffer_ptr,
              buffer_length);
-      return 0x80151802;  // ERROR_CONNECTION_INVALID
+
+      XONLINE_SERVICE_INFO* service_info =
+          reinterpret_cast<XONLINE_SERVICE_INFO*>(
+              memory_->TranslateVirtual(buffer_length));
+      memset(service_info, 0, sizeof(XONLINE_SERVICE_INFO));
+      XELOGD("IP is {}", service_info->ip.s_addr);
+      service_info->id = buffer_ptr;
+      service_info->ip.s_addr = htonl(INADDR_LOOPBACK);
+      return X_ERROR_SUCCESS;
+    }
+    case 0x00050008: {
+      // Required to be successful for 534507D4
+      XELOGD(
+        "XUserCheckPrivilege({:08x}, {:08x}) unimplemented",
+        buffer_ptr, buffer_length);
+      return X_E_SUCCESS;
     }
     case 0x00058020: {
       // 0x00058004 is called right before this.
@@ -64,6 +94,13 @@ X_HRESULT XLiveBaseApp::DispatchMessageSync(uint32_t message,
           "unimplemented",
           buffer_ptr, buffer_length);
       return X_E_FAIL;
+    }
+    case 0x00058035: {
+      // Required to be successful for 534507D4
+      XELOGD(
+        "XLiveBaseUnk58035({:08x}, {:08x}) unimplemented",
+        buffer_ptr, buffer_length);
+      return X_E_SUCCESS;
     }
     case 0x00058046: {
       // Required to be successful for 4D530910 to detect signed-in profile
