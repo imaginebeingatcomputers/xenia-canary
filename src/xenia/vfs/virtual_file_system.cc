@@ -117,6 +117,10 @@ Entry* VirtualFileSystem::ResolvePath(const std::string_view path) {
     normalized_path = resolved_path;
   }
 
+  if (path == "BulletFlameParamDef.def") {
+    path.insert(0, "d:\\")
+  }
+
   // Find the device.
   auto it =
       std::find_if(devices_.cbegin(), devices_.cend(), [&](const auto& d) {

@@ -75,7 +75,14 @@ X_HRESULT XLiveBaseApp::DispatchMessageSync(uint32_t message,
     case 0x00050008: {
       // Required to be successful for 534507D4
       XELOGD(
-        "XUserCheckPrivilege({:08x}, {:08x}) unimplemented",
+        "XDeviceCreateEnum ({:08x}, {:08x}) unimplemented",
+        buffer_ptr, buffer_length);
+      return X_E_SUCCESS;
+    }
+    case 0x00050036: {
+      // Required to be successful for 534507D4
+      XELOGD(
+        "XBaseUnk50036 ({:08x}, {:08x}) unimplemented",
         buffer_ptr, buffer_length);
       return X_E_SUCCESS;
     }
