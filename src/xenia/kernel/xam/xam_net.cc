@@ -307,6 +307,12 @@ dword_result_t XNetLogonGetTitleID_entry(dword_t caller, lpvoid_t params) {
 }
 DECLARE_XAM_EXPORT1(XNetLogonGetTitleID, kNetworking, kImplemented);
 
+dword_result_t XNetLogonGetMachineID_entry(dword_t caller, lpvoid_t params) {
+  uint64_t machine_id = XLiveAPI::GetMachineId();
+  return uint32_t(machine_id);
+}
+DECLARE_XAM_EXPORT1(XNetLogonGetMachineID, kNetworking, kImplemented);
+
 dword_result_t NetDll_XNetGetOpt_entry(dword_t one, dword_t option_id,
                                        lpvoid_t buffer_ptr,
                                        lpdword_t buffer_size) {
