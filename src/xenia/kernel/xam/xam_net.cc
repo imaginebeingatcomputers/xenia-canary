@@ -307,6 +307,14 @@ dword_result_t XNetLogonGetTitleID_entry(dword_t caller, lpvoid_t params) {
 }
 DECLARE_XAM_EXPORT1(XNetLogonGetTitleID, kNetworking, kImplemented);
 
+dword_result_t XNetLogonGetMachineID_entry(lpvoid_t buffer_ptr, dword_t caller) {
+  uint64_t machine_id = XLiveAPI::GetMachineId();
+  std::memcpy(buffer_ptr, &machine_id, sizeof(uint64_t));
+  XELOGI("XNetLogonGetMachineID({:016X})", machine_id);
+  return X_STATUS_SUCCESS;
+}
+DECLARE_XAM_EXPORT1(XNetLogonGetMachineID, kNetworking, kImplemented);
+
 dword_result_t NetDll_XNetGetOpt_entry(dword_t one, dword_t option_id,
                                        lpvoid_t buffer_ptr,
                                        lpdword_t buffer_size) {
