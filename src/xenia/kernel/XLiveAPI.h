@@ -287,6 +287,9 @@ class XLiveAPI {
 
   static std::vector<XLiveAPI::XTitleServer> GetServers();
 
+    static XLiveAPI::XONLINE_SERVICE_INFO GetServiceInfoById(xe::be<uint32_t> serviceId);
+
+
   static void SessionJoinRemote(xe::be<uint64_t> sessionId, const char* data);
 
   static void SessionLeaveRemote(xe::be<uint64_t> sessionId, const char* data);
