@@ -170,6 +170,7 @@ class XLiveAPI {
     xe::be<uint16_t> port;
     xe::be<uint16_t> reserved;
   };
+  static_assert_size(XONLINE_SERVICE_INFO, 12);
 
   struct XUSER_DATA {
     uint8_t type;
