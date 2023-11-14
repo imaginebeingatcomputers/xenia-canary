@@ -1090,7 +1090,7 @@ std::vector<XLiveAPI::XTitleServer> XLiveAPI::GetServers() {
 }
 
 XLiveAPI::XONLINE_SERVICE_INFO XLiveAPI::GetServiceInfoById(xe::be<uint32_t> serviceId) {
-  std::string endpoint = fmt::format("title/{:08x}/services/{:08x}",
+  std::string endpoint = fmt::format("title/{:x}/services/{:08x}",
                                      kernel_state()->title_id(), serviceId);
 
   memory chunk = Get(endpoint);
