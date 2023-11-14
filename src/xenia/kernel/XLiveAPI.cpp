@@ -56,7 +56,7 @@ std::string XLiveAPI::GetApiAddress() {
 
   CURLUcode error_code =
       curl_url_set(url_handle, CURLUPART_URL, cvars::api_address.c_str(), 0);
-  
+
   if (error_code == CURLUE_OK) {
     // Add forward slash if not already added
     if (cvars::api_address.back() != '/') {
@@ -823,7 +823,7 @@ XLiveAPI::SessionJSON XLiveAPI::XSessionMigration(xe::be<uint64_t> sessionId) {
 
       XELOGE("Cannot migrate session {} not found.", session_id);
     }
-    
+
     // change return type to XLiveAPI::memory?
     return session;
   }
@@ -1089,7 +1089,8 @@ std::vector<XLiveAPI::XTitleServer> XLiveAPI::GetServers() {
   return servers;
 }
 
-XLiveAPI::XONLINE_SERVICE_INFO XLiveAPI::GetServiceInfoById(xe::be<uint32_t> serviceId) {
+XLiveAPI::XONLINE_SERVICE_INFO XLiveAPI::GetServiceInfoById(
+    xe::be<uint32_t> serviceId) {
   std::string endpoint = fmt::format("title/{:x}/services/{:08x}",
                                      kernel_state()->title_id(), serviceId);
 
@@ -1108,10 +1109,8 @@ XLiveAPI::XONLINE_SERVICE_INFO XLiveAPI::GetServiceInfoById(xe::be<uint32_t> ser
   doc.Parse(chunk.response);
 
   for (const auto& service_info : doc.GetArray()) {
+    inet_pton(AF_INET, service_info["address"].GetString(), &(service.ip));
 
-    inet_pton(AF_INET, service_info["address"].GetString(),
-              &(service.ip));
-    
     XELOGI("GetServiceById IP: {}", service.ip.s_addr);
 
     service.port = service_info["port"].GetInt();

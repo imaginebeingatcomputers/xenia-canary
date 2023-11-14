@@ -91,7 +91,7 @@ class XLiveAPI {
     xe::be<uint32_t> proc_index;
     xe::be<uint32_t> user_index;
     xe::be<uint32_t> num_results;
-    //xe::be<uint32_t> num_users; will break struct
+    // xe::be<uint32_t> num_users; will break struct
     xe::be<uint16_t> num_props;
     xe::be<uint16_t> num_ctx;
     xe::be<uint32_t> props_ptr;
@@ -288,8 +288,8 @@ class XLiveAPI {
 
   static std::vector<XLiveAPI::XTitleServer> GetServers();
 
-  static XLiveAPI::XONLINE_SERVICE_INFO GetServiceInfoById(xe::be<uint32_t> serviceId);
-
+  static XLiveAPI::XONLINE_SERVICE_INFO GetServiceInfoById(
+      xe::be<uint32_t> serviceId);
 
   static void SessionJoinRemote(xe::be<uint64_t> sessionId, const char* data);
 
