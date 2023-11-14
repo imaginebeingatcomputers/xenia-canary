@@ -436,9 +436,7 @@ DECLARE_XAM_EXPORT1(NetDll_WSACleanup, kNetworking, kImplemented);
 // Xbox shares space between normal error codes and WSA errors.
 // This under the hood returns directly value received from RtlGetLastError.
 dword_result_t NetDll_WSAGetLastError_entry() {
-  uint32_t last_error = XThread::GetLastError();
-  XELOGI("WSAGetLastError: {}", last_error);
-  return last_error;
+  return XThread::GetLastError();
 }
 DECLARE_XAM_EXPORT1(NetDll_WSAGetLastError, kNetworking, kImplemented);
 
