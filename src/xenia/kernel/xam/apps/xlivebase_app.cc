@@ -65,7 +65,7 @@ X_HRESULT XLiveBaseApp::DispatchMessageSync(uint32_t message,
       service_info->id = buffer_ptr;
       service_info->ip.s_addr = retrieved_service_info.ip.s_addr;
       service_info->port = retrieved_service_info.port;
-      service_info->reserved = 0;
+      service_info->reserved = retrieved_service_info.reserved;
       XELOGD("IP is {}", service_info->ip.s_addr);
       return X_ERROR_SUCCESS;
       // return 0x80151802;  // ERROR_CONNECTION_INVALID

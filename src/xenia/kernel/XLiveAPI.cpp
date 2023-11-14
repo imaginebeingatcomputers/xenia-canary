@@ -1108,10 +1108,11 @@ XLiveAPI::XONLINE_SERVICE_INFO XLiveAPI::GetServiceInfoById(xe::be<uint32_t> ser
   doc.Parse(chunk.response);
 
   for (const auto& service_info : doc.GetArray()) {
-    XONLINE_SERVICE_INFO service{};
 
     inet_pton(AF_INET, service_info["address"].GetString(),
               &(service.ip));
+    
+    XELOGI("GetServiceById IP: {}", service.ip.s_addr);
 
     service.port = service_info["port"].GetInt();
     service.reserved = 0;
