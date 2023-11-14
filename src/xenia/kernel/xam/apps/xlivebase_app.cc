@@ -22,13 +22,6 @@
 
 #include <xenia/kernel/XLiveAPI.h>
 
-struct XONLINE_SERVICE_INFO {
-  xe::be<uint32_t> id;
-  in_addr ip;
-  xe::be<uint16_t> port;
-  xe::be<uint16_t> reserved;
-};
-
 namespace xe {
 namespace kernel {
 namespace xam {
@@ -64,13 +57,15 @@ X_HRESULT XLiveBaseApp::DispatchMessageSync(uint32_t message,
       // XONLINE_SERVICE_INFO structure.
       XELOGD("CXLiveLogon::GetServiceInfo({:08X}, {:08X})", buffer_ptr,
              buffer_length);
-      XONLINE_SERVICE_INFO* service_info =
-          reinterpret_cast<XONLINE_SERVICE_INFO*>(
+      XLiveAPI::XONLINE_SERVICE_INFO* service_info =
+          reinterpret_cast<XLiveAPI::XONLINE_SERVICE_INFO*>(
               memory_->TranslateVirtual(buffer_length));
-      memset(service_info, 0, sizeof(XONLINE_SERVICE_INFO));
+      memset(service_info, 0, sizeof(XLiveAPI::XONLINE_SERVICE_INFO));
+      XLiveAPI::XONLINE_SERVICE_INFO retrieved_service_info = XLiveAPI::GetServiceInfoById(buffer_ptr);
       service_info->id = buffer_ptr;
-      const auto servers = XLiveAPI::GetServers();
-      service_info->ip.s_addr = servers[0].server_address.s_addr;
+      service_info->ip.s_addr = retrieved_service_info.ip.s_addr;
+      service_info->port = retrieved_service_info.port;
+      service_info->reserved = 0;
       XELOGD("IP is {}", service_info->ip.s_addr);
       return X_ERROR_SUCCESS;
       // return 0x80151802;  // ERROR_CONNECTION_INVALID

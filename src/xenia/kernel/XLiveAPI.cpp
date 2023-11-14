@@ -1089,6 +1089,38 @@ std::vector<XLiveAPI::XTitleServer> XLiveAPI::GetServers() {
   return servers;
 }
 
+XLiveAPI::XONLINE_SERVICE_INFO XLiveAPI::GetServiceInfoById(xe::be<uint32_t> serviceId) {
+  std::string endpoint = fmt::format("title/{:08x}/services/{:08x}",
+                                     kernel_state()->title_id(), serviceId);
+
+  memory chunk = Get(endpoint);
+
+  XLiveAPI::XONLINE_SERVICE_INFO service{};
+
+  if (chunk.http_code != 200) {
+    XELOGE("GetServiceById error code: {}", chunk.http_code);
+    assert_always();
+
+    return service;
+  }
+
+  Document doc;
+  doc.Parse(chunk.response);
+
+  for (const auto& service_info : doc.GetArray()) {
+    XONLINE_SERVICE_INFO service{};
+
+    inet_pton(AF_INET, service_info["address"].GetString(),
+              &(service.ip));
+
+    service.port = service_info["port"].GetInt();
+    service.reserved = 0;
+    service.id = serviceId;
+  }
+
+  return service;
+}
+
 void XLiveAPI::SessionJoinRemote(xe::be<uint64_t> sessionId, const char* data) {
   std::string endpoint = fmt::format("title/{:x}/sessions/{:016x}/join",
                                      kernel_state()->title_id(), sessionId);

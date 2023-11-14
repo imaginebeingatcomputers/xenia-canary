@@ -164,6 +164,13 @@ class XLiveAPI {
     xe::be<uint32_t> properties_guest_address;
   };
 
+  struct XONLINE_SERVICE_INFO {
+    xe::be<uint32_t> id;
+    in_addr ip;
+    xe::be<uint16_t> port;
+    xe::be<uint16_t> reserved;
+  };
+
   struct XUSER_DATA {
     uint8_t type;
 
