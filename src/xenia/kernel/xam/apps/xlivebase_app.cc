@@ -20,6 +20,8 @@
 #include <netinet/in.h>
 #endif
 
+#include <xenia/kernel/XLiveAPI.h>
+
 struct XONLINE_SERVICE_INFO {
   xe::be<uint32_t> id;
   in_addr ip;
@@ -66,9 +68,10 @@ X_HRESULT XLiveBaseApp::DispatchMessageSync(uint32_t message,
           reinterpret_cast<XONLINE_SERVICE_INFO*>(
               memory_->TranslateVirtual(buffer_length));
       memset(service_info, 0, sizeof(XONLINE_SERVICE_INFO));
-      XELOGD("IP is {}", service_info->ip.s_addr);
       service_info->id = buffer_ptr;
-      service_info->ip.s_addr = htonl(INADDR_LOOPBACK);
+      const auto servers = XLiveAPI::GetServers();
+      service_info->ip.s_addr = servers[0].server_address.s_addr;
+      XELOGD("IP is {}", service_info->ip.s_addr);
       return X_ERROR_SUCCESS;
       // return 0x80151802;  // ERROR_CONNECTION_INVALID
     }
