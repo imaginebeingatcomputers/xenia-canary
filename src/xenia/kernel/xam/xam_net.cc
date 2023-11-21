@@ -307,7 +307,8 @@ dword_result_t XNetLogonGetTitleID_entry(dword_t caller, lpvoid_t params) {
 }
 DECLARE_XAM_EXPORT1(XNetLogonGetTitleID, kNetworking, kImplemented);
 
-dword_result_t XNetLogonGetMachineID_entry(lpvoid_t buffer_ptr, dword_t caller) {
+dword_result_t XNetLogonGetMachineID_entry(lpvoid_t buffer_ptr,
+                                           dword_t caller) {
   uint64_t machine_id = XLiveAPI::GetMachineId();
   std::memcpy(buffer_ptr, &machine_id, sizeof(uint64_t));
   XELOGI("XNetLogonGetMachineID({:016X})", machine_id);
@@ -436,7 +437,9 @@ DECLARE_XAM_EXPORT1(NetDll_WSACleanup, kNetworking, kImplemented);
 // Xbox shares space between normal error codes and WSA errors.
 // This under the hood returns directly value received from RtlGetLastError.
 dword_result_t NetDll_WSAGetLastError_entry() {
-  return XThread::GetLastError();
+  uint32_t last_error = XThread::GetLastError();
+  XELOGD("NetDll_WSAGetLastError: {}", last_error);
+  return last_error;
 }
 DECLARE_XAM_EXPORT1(NetDll_WSAGetLastError, kNetworking, kImplemented);
 
@@ -606,8 +609,8 @@ dword_result_t NetDll_XNetGetTitleXnAddr_entry(dword_t caller,
   if (!XLiveAPI::is_active()) {
     XLiveAPI::Init();
 
-    //XELOGE("NetDll_XNetGetTitleXnAddr PENDING XLiveAPI");
-    //return XnAddrStatus::XNET_GET_XNADDR_PENDING;
+    // XELOGE("NetDll_XNetGetTitleXnAddr PENDING XLiveAPI");
+    // return XnAddrStatus::XNET_GET_XNADDR_PENDING;
   }
 
   auto status = XnAddrStatus::XNET_GET_XNADDR_STATIC |

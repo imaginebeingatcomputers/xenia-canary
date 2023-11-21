@@ -107,9 +107,23 @@ bool VirtualFileSystem::ResolveSymbolicLink(const std::string_view path,
 
 Entry* VirtualFileSystem::ResolvePath(const std::string_view path) {
   auto global_lock = global_critical_region_.Acquire();
+  std::string original_path = std::string(path);
+  std::string fixed_path;
+  if (path == "BulletParamDef.def" || path == "BulletEffectParamDef.def" ||
+      path == "BulletExplParamDef.def" || path == "BulletFlameParamDef.def") {
+    fixed_path = std::string("d:\\game\\") + std::string(path);
+    XELOGD("Adjusting chromehounds bullet def paths");
+  } else if ((xe::utf8::starts_with(path, "devkit:\\CH")) ||
+             (xe::utf8::starts_with(path, "devkit:\\ch"))) {
+    std::string base_path = "d:";
+    fixed_path = std::string(path).replace(0, 10, base_path);
+    XELOGD("Adjusting devkit paths: {}", fixed_path);
+  } else {
+    fixed_path = path;
+  }
 
   // Resolve relative paths
-  auto normalized_path(xe::utf8::canonicalize_guest_path(path));
+  auto normalized_path(xe::utf8::canonicalize_guest_path(fixed_path));
 
   // Resolve symlinks.
   std::string resolved_path;
@@ -125,8 +139,10 @@ Entry* VirtualFileSystem::ResolvePath(const std::string_view path) {
   if (it == devices_.cend()) {
     // Supress logging the error for ShaderDumpxe:\CompareBackEnds as this is
     // not an actual problem nor something we care about.
-    if (path != "ShaderDumpxe:\\CompareBackEnds") {
-      XELOGE("ResolvePath({}) failed - device not found", path);
+    if (original_path != "ShaderDumpxe:\\CompareBackEnds" ||
+        !(xe::utf8::starts_with(path, "devkit:\\ch")) ||
+        !(xe::utf8::starts_with(path, "devkit:\\CH"))) {
+      XELOGE("ResolvePath({}) failed - device not found", fixed_path);
     }
     return nullptr;
   }
