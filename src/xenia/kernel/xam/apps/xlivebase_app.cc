@@ -61,7 +61,8 @@ X_HRESULT XLiveBaseApp::DispatchMessageSync(uint32_t message,
           reinterpret_cast<XLiveAPI::XONLINE_SERVICE_INFO*>(
               memory_->TranslateVirtual(buffer_length));
       memset(service_info, 0, sizeof(XLiveAPI::XONLINE_SERVICE_INFO));
-      XLiveAPI::XONLINE_SERVICE_INFO retrieved_service_info = XLiveAPI::GetServiceInfoById(buffer_ptr);
+      XLiveAPI::XONLINE_SERVICE_INFO retrieved_service_info =
+          XLiveAPI::GetServiceInfoById(buffer_ptr);
       service_info->id = buffer_ptr;
       service_info->ip.s_addr = retrieved_service_info.ip.s_addr;
       service_info->port = retrieved_service_info.port;
@@ -109,12 +110,12 @@ X_HRESULT XLiveBaseApp::DispatchMessageSync(uint32_t message,
       // Required for 534507D4
       XELOGD("XLiveBaseUnk58035({:08X}, {:08X}) unimplemented", buffer_ptr,
              buffer_length);
-      return X_E_SUCCESS;
+      return X_E_FAIL;
     }
     case 0x00050036: {
       XELOGD("XOnlineQuerySearch({:08X}, {:08X}) unimplemented", buffer_ptr,
              buffer_length);
-      return X_E_SUCCESS;
+      return X_E_FAIL;
     }
     case 0x00050009: {
       // Fixes Xbox Live error for 513107D9
