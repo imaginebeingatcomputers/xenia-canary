@@ -302,6 +302,15 @@ dword_result_t NetDll_XNetCleanup_entry(dword_t caller, lpvoid_t params) {
 }
 DECLARE_XAM_EXPORT1(NetDll_XNetCleanup, kNetworking, kImplemented);
 
+dword_result_t XNetLogonGetMachineID_entry(pointer_t buffer_ptr,
+                                           dword_t caller) {
+  uint64_t machine_id = XLiveAPI::GetMachineId();
+  std::memcpy(buffer_ptr, &machine_id, sizeof(uint64_t));
+  XELOGI("XNetLogonGetMachineID({:016X})", machine_id);
+  return X_STATUS_SUCCESS;
+}
+DECLARE_XAM_EXPORT1(XNetLogonGetMachineID, kNetworking, kImplemented);
+
 dword_result_t XNetLogonGetTitleID_entry(dword_t caller, lpvoid_t params) {
   return kernel_state()->title_id();
 }
@@ -598,8 +607,8 @@ dword_result_t NetDll_XNetGetTitleXnAddr_entry(dword_t caller,
   if (!XLiveAPI::is_active()) {
     XLiveAPI::Init();
 
-    //XELOGE("NetDll_XNetGetTitleXnAddr PENDING XLiveAPI");
-    //return XnAddrStatus::XNET_GET_XNADDR_PENDING;
+    // XELOGE("NetDll_XNetGetTitleXnAddr PENDING XLiveAPI");
+    // return XnAddrStatus::XNET_GET_XNADDR_PENDING;
   }
 
   auto status = XnAddrStatus::XNET_GET_XNADDR_STATIC |
