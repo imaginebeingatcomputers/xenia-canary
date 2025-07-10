@@ -49,13 +49,18 @@ namespace apps {
 XLiveBaseApp::XLiveBaseApp(KernelState* kernel_state)
     : App(kernel_state, 0xFC) {}
 
+uint32_t* extended_error_ptr = nullptr;
+
 /// <param name="buffer_ptr"> - Generic param1 could be anything.</param>
 /// <param name="buffer_length"> - Generic param2 could be anything.</param>
 X_HRESULT XLiveBaseApp::DispatchMessageSync(uint32_t message,
                                             uint32_t buffer_ptr,
-                                            uint32_t buffer_length) {
+                                            uint32_t buffer_length,
+                                            uint32_t* extended_error) {
   // NOTE: buffer_length may be zero or valid.
   uint8_t* buffer = memory_->TranslateVirtual<uint8_t*>(buffer_ptr);
+
+  extended_error_ptr = extended_error;
 
   switch (message) {
     case 0x00050002: {
@@ -1716,7 +1721,8 @@ X_HRESULT XLiveBaseApp::XStorageDownloadToMemory(uint32_t buffer_ptr) {
   // 41560817, 513107D5, 513107D9, 415607DD, 415607DD
 
   if (!buffer_ptr) {
-    return X_E_INVALIDARG;
+    *extended_error_ptr = X_E_INVALIDARG;
+    return X_ERROR_FUNCTION_FAILED;
   }
 
   XStorageDownloadToMemoryUnmarshaller* unmarshaller =
@@ -1725,7 +1731,8 @@ X_HRESULT XLiveBaseApp::XStorageDownloadToMemory(uint32_t buffer_ptr) {
   X_HRESULT deserialize_result = unmarshaller->Deserialize();
 
   if (deserialize_result) {
-    return deserialize_result;
+    *extended_error_ptr = deserialize_result;
+    return X_ERROR_FUNCTION_FAILED;
   }
 
   unmarshaller->ZeroResults();
@@ -1763,7 +1770,8 @@ X_HRESULT XLiveBaseApp::XStorageDownloadToMemory(uint32_t buffer_ptr) {
       if (buffer.size_bytes() > download_buffer.size_bytes()) {
         XELOGI("{}: Provided file size {}b is larger than expected {}b",
                __func__, buffer.size_bytes(), download_buffer.size_bytes());
-        return X_E_INSUFFICIENT_BUFFER;
+        *extended_error_ptr = X_ERROR_INSUFFICIENT_BUFFER;
+        return X_ERROR_FUNCTION_FAILED;
       }
 
       memcpy(download_buffer.data(), buffer.data(), buffer.size_bytes());
@@ -1806,7 +1814,8 @@ X_HRESULT XLiveBaseApp::XStorageDownloadToMemory(uint32_t buffer_ptr) {
         if (bytes_read > unmarshaller->BufferSize()) {
           XELOGI("{}: Provided file size {}b is larger than expected {}b",
                  __func__, bytes_read, unmarshaller->BufferSize());
-          return X_E_INSUFFICIENT_BUFFER;
+          *extended_error_ptr = X_ERROR_INSUFFICIENT_BUFFER;
+          return X_ERROR_FUNCTION_FAILED;
         }
 
         memcpy(download_buffer.data(), file_data.data(), bytes_read);
@@ -1830,6 +1839,11 @@ X_HRESULT XLiveBaseApp::XStorageDownloadToMemory(uint32_t buffer_ptr) {
   XELOGI("{}: Downloaded Bytes: {}b, Buffer Size: {}b, Server Path: {}",
          __func__, download_results_ptr->bytes_total.get(),
          unmarshaller->BufferSize(), item_to_download);
+
+  if (result != X_E_SUCCESS) {
+    *extended_error_ptr = X_ONLINE_E_STORAGE_FILE_NOT_FOUND;
+    return X_ERROR_FUNCTION_FAILED;
+  }
 
   return result;
 }

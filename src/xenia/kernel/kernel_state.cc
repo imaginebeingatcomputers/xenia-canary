@@ -992,6 +992,17 @@ void KernelState::CompleteOverlappedEx(uint32_t overlapped_ptr, X_RESULT result,
   auto ptr = memory()->TranslateVirtual(overlapped_ptr);
   XOverlappedSetResult(ptr, result);
   XOverlappedSetExtendedError(ptr, extended_error);
+
+  // 41560817 checks X_ONLINE_E_STORAGE_FILE_NOT_FOUND via
+  // XGetOverlappedExtendedError
+
+  // 545107D1 (TU0), 4D5307D6 - Don't like XOnline error code in result of
+  // XAM_OVERLAPPED after XLiveBase call to XStorageDownload
+  // if (result == X_ONLINE_E_STORAGE_FILE_NOT_FOUND) {
+  //  // 545107D1 expects X_ERROR_FUNCTION_FAILED in result
+  //  XOverlappedSetResult(ptr, X_ERROR_FUNCTION_FAILED);
+  //}
+
   XOverlappedSetLength(ptr, length);
   X_HANDLE event_handle = XOverlappedGetEvent(ptr);
   if (event_handle) {
@@ -1073,6 +1084,7 @@ void KernelState::CompleteOverlappedDeferredEx(
     std::function<void()> post_callback) {
   auto ptr = memory()->TranslateVirtual(overlapped_ptr);
   XOverlappedSetResult(ptr, X_ERROR_IO_PENDING);
+  // XOverlappedSetExtendedError(ptr, ERROR_IO_INCOMPLETE);
   XOverlappedSetContext(ptr, XThread::GetCurrentThreadHandle());
   X_HANDLE event_handle = XOverlappedGetEvent(ptr);
   if (event_handle) {

@@ -46,7 +46,10 @@ X_HRESULT AppManager::DispatchMessageSync(uint32_t app_id, uint32_t message,
   if (it == app_lookup_.end()) {
     return X_E_NOTFOUND;
   }
-  return it->second->DispatchMessageSync(message, buffer_ptr, buffer_length);
+
+  uint32_t extended_error = 0;
+  return it->second->DispatchMessageSync(message, buffer_ptr, buffer_length,
+                                         &extended_error);
 }
 
 X_HRESULT AppManager::DispatchMessageAsync(uint32_t app_id, uint32_t message,
@@ -69,13 +72,20 @@ X_HRESULT AppManager::DispatchMessageAsync(uint32_t app_id, uint32_t message,
 
   auto post = [memory, buffer_in]() { memory->SystemHeapFree(buffer_in); };
 
-  auto run = [it, message, buffer_in, buffer_length]() -> X_RESULT {
-    return it->second->DispatchMessageSync(message, buffer_in, buffer_length);
+  auto run = [it, message, buffer_in, buffer_length](
+                 uint32_t& extended_error, uint32_t& length) -> X_RESULT {
+    extended_error = 0;
+    length = 0;
+
+    auto result = it->second->DispatchMessageSync(
+        message, buffer_in, buffer_length, &extended_error);
+
+    return result;
   };
 
   if (overlapped_ptr) {
-    it->second->kernel_state_->CompleteOverlappedDeferred(run, overlapped_ptr,
-                                                          nullptr, post);
+    it->second->kernel_state_->CompleteOverlappedDeferredEx(run, overlapped_ptr,
+                                                            nullptr, post);
     return X_ERROR_IO_PENDING;
   };
 
