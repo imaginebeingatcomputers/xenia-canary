@@ -4,17 +4,12 @@ project("libcurl")
   kind("StaticLib")
   language("C")
   links({
-    "Wldap32",
-    "crypt32"
+    "wolfssl"
   })
   defines({
     "BUILDING_LIBCURL",
-    -- "USE_WOLFSSL",
-    -- "WITHOUT_SSL",
-    -- "OPENSSL_EXTRA",
-
-    "USE_SCHANNEL",
-    "USE_WINDOWS_SSPI",
+    "HTTP_ONLY",
+    "USE_WOLFSSL",
   })
   filter({"configurations:Release", "platforms:Windows"})
     buildoptions({
@@ -22,12 +17,14 @@ project("libcurl")
       "/O1"
     })
   filter {}
-
+  postbuildcommands {
+    "{DELETE} %[wolfssl/options.h]"
+  }
   includedirs({
     "libcurl/lib",
     "libcurl/include",
-
-    -- "wolfssl",
+    "wolfssl",
+ 
     -- "wolfssl/src",
     -- "wolfssl/wolfssl",
     -- "wolfssl/wolfssl/openssl",
