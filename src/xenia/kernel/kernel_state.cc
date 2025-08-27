@@ -1098,8 +1098,18 @@ void KernelState::CompleteOverlappedDeferredEx(
      Small delay fixes it e.g. 25ms.
     */
     xe::threading::Sleep(kDeferredOverlappedDelayMillis);
-    uint32_t extended_error, length;
-    auto result = completion_callback(extended_error, length);
+    uint32_t extended_error = 0;
+    uint32_t length = 0;
+    int32_t result = completion_callback(extended_error, length);
+
+    if (result < 0) {
+      extended_error = result;
+      result = X_ERROR_FUNCTION_FAILED;
+
+      XELOGI("CompleteOverlappedDeferredEx: Setting Extended Error: {:08X}",
+             extended_error);
+    }
+
     CompleteOverlappedEx(overlapped_ptr, result, extended_error, length);
     if (post_callback) {
       post_callback();

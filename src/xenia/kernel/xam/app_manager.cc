@@ -9,6 +9,7 @@
 
 #include "xenia/kernel/xam/app_manager.h"
 
+#include "xenia/base/logging.h"
 #include "xenia/kernel/kernel_state.h"
 #include "xenia/kernel/xam/apps/messenger_app.h"
 #include "xenia/kernel/xam/apps/xam_app.h"
@@ -69,13 +70,34 @@ X_HRESULT AppManager::DispatchMessageAsync(uint32_t app_id, uint32_t message,
 
   auto post = [memory, buffer_in]() { memory->SystemHeapFree(buffer_in); };
 
-  auto run = [it, message, buffer_in, buffer_length]() -> X_RESULT {
-    return it->second->DispatchMessageSync(message, buffer_in, buffer_length);
+  auto& _func_ = __func__;
+  auto run = [it, message, buffer_in, buffer_length, app_id, _func_](
+                 uint32_t& extended_error, uint32_t& length) -> X_RESULT {
+    // 41560817 checks X_ONLINE_E_STORAGE_FILE_NOT_FOUND via
+    // XGetOverlappedExtendedError
+
+    // 545107D1 (TU0), 4D5307D6 - Don't like XOnline error code in result of
+    // XAM_OVERLAPPED after XLiveBase call to XStorageDownloadToMemory
+
+    int32_t result =
+        it->second->DispatchMessageSync(message, buffer_in, buffer_length);
+
+    if (result < 0) {
+      extended_error = result;
+      result = X_ERROR_FUNCTION_FAILED;
+
+      XELOGI(
+          "{}: Setting Extended Error - App: {:08X}, Message: {:08X}, Extended "
+          "Error: {:08X}",
+          _func_, app_id, message, extended_error);
+    }
+
+    return result;
   };
 
   if (overlapped_ptr) {
-    it->second->kernel_state_->CompleteOverlappedDeferred(run, overlapped_ptr,
-                                                          nullptr, post);
+    it->second->kernel_state_->CompleteOverlappedDeferredEx(run, overlapped_ptr,
+                                                            nullptr, post);
     return X_ERROR_IO_PENDING;
   };
 
