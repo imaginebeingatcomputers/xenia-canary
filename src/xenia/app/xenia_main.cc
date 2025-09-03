@@ -553,6 +553,18 @@ void EmulatorApp::EmulatorThread() {
     }
   }
 
+  auto system_device =
+      std::make_unique<xe::vfs::HostPathDevice>("\\SYSTEM", "system", false);
+  if (!system_device->Initialize()) {
+    XELOGE("Unable to scan system path");
+  } else {
+    if (!emulator_->file_system()->RegisterDevice(std::move(system_device))) {
+      XELOGE("Unable to register system path");
+    } else {
+      emulator_->file_system()->RegisterSymbolicLink("system:", "\\SYSTEM");
+    }
+  }
+
   if (cvars::mount_cache) {
     auto cache0_device =
         std::make_unique<xe::vfs::HostPathDevice>("\\CACHE0", "cache0", false);
