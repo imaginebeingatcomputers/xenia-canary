@@ -884,3 +884,8 @@ if(NOT WIN32)
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/miniupnp/miniupnpc
   )
 endif()
+
+# ==============================================================================
+# libzip
+# ==============================================================================
+add_subdirectory(libzip)

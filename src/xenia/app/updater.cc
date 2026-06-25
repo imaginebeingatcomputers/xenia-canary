@@ -14,6 +14,11 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#ifdef XE_PLATFORM_WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
 #include "third_party/fmt/include/fmt/format.h"
 #include "third_party/rapidjson/include/rapidjson/document.h"
@@ -729,204 +734,43 @@ bool Updater::UpdateAndRestart(const std::filesystem::path& zip_path) {
   const auto executable_filename = executable_path.filename().string();
   const auto executable_parent = xe::filesystem::GetExecutableFolder();
 
-  std::string update_script_filename = "";
-
-#ifdef XE_PLATFORM_WIN32
-  update_script_filename = "updater.bat";
-#elif XE_PLATFORM_LINUX
-  update_script_filename = "updater.sh";
-#endif
-
-  const auto update_script_path = executable_parent / update_script_filename;
   const auto zip_filename = zip_path.filename().string();
 
-  const auto update_log_filename = "xenia_canary_update.log";
   const auto backup_folder_name = "canary_netplay_old";
 
-  if (std::filesystem::exists(update_script_path, ec) && !ec) {
-    std::filesystem::remove(update_script_path, ec);
+  int zip_err = 0;
+  zip* archive = zip_open(zip_path.c_str(), 0, &zip_err);
+  struct zip_stat stat;
+
+  zip_stat_init(&stat);
+  zip_stat(archive, executable_path.filename().c_str(), 0, &stat);
+
+  std::vector<char> buffer(stat.size);
+
+  zip_file* file = zip_fopen(archive, executable_path.filename().c_str(), 0);
+  zip_fread(file, buffer.data(), stat.size);
+  zip_fclose(file);
+  zip_close(archive);
+
+  std::filesystem::path backup_exe_path = executable_path.string() + ".old";
+  std::filesystem::rename(executable_path.string(), backup_exe_path, ec);
+  std::ofstream out(executable_path.c_str(), std::ios::binary);
+  out.write(buffer.data(), buffer.size());
+#ifdef XE_PLATFORM_WIN32
+  std::string cl = executable_path.string() + " --updated";
+  STARTUPINFO si = {sizeof(si)};
+  PROCESS_INFORMATION pi;
+  if (!CreateProcess(cl.c_str(), NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+      std::cout << "CreateProcess failed (" << GetLastError() << ").\n";
+      return 1;
   }
+#else
+  execl(executable_path.c_str(), executable_filename.c_str(), "--updated", (char *)NULL);
+#endif
 
   if (ec) {
     return false;
   }
-
-  std::string script_content = "";
-
-// Scripts for completing the automatic update process.
-#ifdef XE_PLATFORM_WIN32
-  const DWORD current_process_id = GetCurrentProcessId();
-
-  script_content = fmt::format(
-      "@echo off\n"
-      "set LOG_FILE=\"{1}\\{5}\"\n"
-      "echo [INF] Starting Xenia update script > %LOG_FILE%\n"
-      "echo [INF] Changed to extract directory >> %LOG_FILE%\n"
-      "cd \"{1}\"\n"
-      "echo [INF] Waiting for Xenia process to exit >> %LOG_FILE%\n"
-      "set ps_stop_instances=powershell -ExecutionPolicy RemoteSigned -Command "
-      "\"Get-Process (Get-Item '{2}').Basename | Where-Object Path -eq '{2}' | "
-      "ForEach-Object {{ if ($_.Id -eq {7}) {{ Wait-Process -id {7} }} else {{ "
-      "Stop-Process -id $_.Id; Wait-Process -id $_.Id }}}}\"\n"
-      "call %ps_stop_instances%\n"
-      "echo [INF] Xenia process has exited >> %LOG_FILE%\n"
-      "echo [INF] Cleaning and creating backup folder >> %LOG_FILE%\n"
-      "if exist \"{1}\\{6}\" rd /s /q \"{1}\\{6}\"\n"
-      "mkdir     \"{1}\\{6}\"\n"
-      "echo [INF] Backing up old executable: {2} >> %LOG_FILE%\n"
-      "copy /y \"{2}\" \"{1}\\{6}\\{0}\" >> %LOG_FILE% 2>&1\n"
-      "echo [INF] Extracting Xenia update... >> %LOG_FILE%\n"
-      "echo [INF] Attempting tar extraction of {3} >> %LOG_FILE%\n"
-      "tar -xf {3} >> %LOG_FILE% 2>&1\n"
-      "if errorlevel 1 (\n"
-      "  echo [WRN] tar extraction failed, trying PowerShell >> "
-      "%LOG_FILE%\n"
-      "  powershell -ExecutionPolicy RemoteSigned -Command "
-      "\"$ErrorActionPreference "
-      "= 'Stop'; try {{ if (-not (Get-Command Expand-Archive -ErrorAction "
-      "SilentlyContinue)) {{ throw 'Expand-Archive not available' }}; "
-      "Expand-Archive -Path '{4}' -DestinationPath '{1}' -Force -ErrorAction "
-      "Stop; if ($Error.Count -gt 0) {{ exit 1 }}; exit 0 }} catch {{ "
-      "Write-Host 'PowerShell extraction failed:' $_.Exception.Message; exit 1 "
-      "}}\" >> %LOG_FILE% 2>&1\n"
-      "  if errorlevel 1 (\n"
-      "    echo [ERR] Both tar and PowerShell extraction "
-      "failed >> %LOG_FILE%\n"
-      "    echo [INF] Relaunching Xenia with update failed flag >> "
-      "%LOG_FILE%\n"
-      "    start \"\" \"{2}\" --updated=false\n"
-      "    del \"%~f0\"\n"
-      "    exit /b 1\n"
-      "  ) else (\n"
-      "    echo [INF] PowerShell extraction succeeded >> %LOG_FILE%\n"
-      "  )\n"
-      ") else (\n"
-      "  echo [INF] tar extraction succeeded >> %LOG_FILE%\n"
-      ")\n"
-      "echo [INF] Starting updated Xenia executable >> %LOG_FILE%\n"
-      "start \"\" \"{2}\" --updated=true\n"
-      "echo [INF] Deleting zip file: {4} >> %LOG_FILE%\n"
-      "del \"{4}\" >> %LOG_FILE% 2>&1\n"
-      "echo [INF] Update script completed successfully >> "
-      "%LOG_FILE%\n"
-      "del \"%~f0\"\n",
-      executable_filename,  // {0}
-      executable_parent,    // {1}
-      executable_path,      // {2}
-      zip_filename,         // {3}
-      zip_path,             // {4}
-      update_log_filename,  // {5}
-      backup_folder_name,   // {6}
-      current_process_id    // {7}
-  );
-#elif XE_PLATFORM_LINUX
-  script_content = fmt::format(
-      "#!/bin/bash\n"
-      "\n"
-      "EXECUTABLE_NAME=\"{0}\"                    # final executable name\n"
-      "EXECUTABLE_PATH=\"$(dirname \"$(realpath \"$0\")\")/$EXECUTABLE_NAME\"\n"
-      "ARCHIVE_FILE=\"{1}\"          # archive file\n"
-      "INNER_PATH=\"build/bin/Linux/Release/xenia_canary_netplay\" # path "
-      "inside archive\n"
-      "LOG_FILE=\"$(dirname \"$(realpath \"$0\")\")/{2}\"\n"
-      "BACKUP_DIR=\"$(dirname \"$(realpath \"$0\")\")/{3}\"\n"
-      "\n"
-      "echo \"[INF] Starting Xenia update script\" > \"$LOG_FILE\"\n"
-      "\n"
-      "cd \"$(dirname \"$(realpath \"$0\")\")\" || exit 1\n"
-      "\n"
-      "# Check if tar is installed before doing anything else\n"
-      "if ! command -v tar &> /dev/null; then\n"
-      "    echo \"[ERR] tar is not installed\"\n"
-      "    echo \"[INF] Relaunching Xenia with update failed flag\" >> "
-      "\"$LOG_FILE\"\n"
-      "    \"$EXECUTABLE_PATH\" --updated=false &\n"
-      "    rm -- \"$0\"\n"
-      "    exit 1\n"
-      "fi\n"
-      "\n"
-      "# Extract only the new executable directly from tar.xz\n"
-      "echo \"[INF] Extracting executable from archive: $ARCHIVE_FILE\" >> "
-      "\"$LOG_FILE\"\n"
-      "if ! tar -xJf \"$ARCHIVE_FILE\" \"$INNER_PATH\" >> \"$LOG_FILE\" 2>&1; "
-      "then\n"
-      "  echo \"[ERR] Failed to extract $INNER_PATH from $ARCHIVE_FILE\" >> "
-      "\"$LOG_FILE\"\n"
-      "  echo \"[INF] Relaunching Xenia with update failed flag\" >> "
-      "\"$LOG_FILE\"\n"
-      "  \"$EXECUTABLE_PATH\" --updated=false &\n"
-      "  rm -- \"$0\"\n"
-      "  exit 1\n"
-      "fi\n"
-      "\n"
-      "echo \"[INF] Cleaning and creating backup folder\" >> \"$LOG_FILE\"\n"
-      "rm -rf \"$BACKUP_DIR\"\n"
-      "mkdir -p \"$BACKUP_DIR\"\n"
-      "\n"
-      "echo \"[INF] Backing up old executable\" >> \"$LOG_FILE\"\n"
-      "if [ -f \"$EXECUTABLE_PATH\" ]; then\n"
-      "  cp \"$EXECUTABLE_PATH\" \"$BACKUP_DIR/$EXECUTABLE_NAME\" >> "
-      "\"$LOG_FILE\" 2>&1\n"
-      "fi\n"
-      "\n"
-      "echo \"[INF] Installing new executable\" >> \"$LOG_FILE\"\n"
-      "install \"$INNER_PATH\" \"$EXECUTABLE_PATH\"\n"
-      "\n"
-      "# Cleanup extracted folders\n"
-      "rm -rf build\n"
-      "\n"
-      "# Start updated executable\n"
-      "echo \"[INF] Starting updated Xenia executable\" >> \"$LOG_FILE\"\n"
-      "\"$EXECUTABLE_PATH\" --updated=true &\n"
-      "\n"
-      "# Remove archive and self-delete\n"
-      "echo \"[INF] Deleting archive file: $ARCHIVE_FILE\" >> \"$LOG_FILE\"\n"
-      "rm -f \"$ARCHIVE_FILE\" >> \"$LOG_FILE\" 2>&1\n"
-      "\n"
-      "echo \"[INF] Update script completed successfully\" >> \"$LOG_FILE\"\n"
-      "rm -- \"$0\"",
-      executable_filename, zip_filename, update_log_filename,
-      backup_folder_name);
-#endif
-
-  std::ofstream update_script_file(update_script_path);
-
-  if (!update_script_file.is_open()) {
-    return false;
-  }
-
-  update_script_file << script_content;
-
-  if (update_script_file.fail()) {
-    update_script_file.close();
-    return false;
-  }
-
-  update_script_file.close();
-
-#ifdef XE_PLATFORM_WIN32
-  SHELLEXECUTEINFO ShExecInfo = {};
-
-  const std::wstring update_script_path_wstr_ = update_script_path.wstring();
-  const wchar_t* update_script_path_wstr_ptr = update_script_path_wstr_.c_str();
-
-  ShExecInfo.cbSize = sizeof(SHELLEXECUTEINFO);
-  ShExecInfo.lpFile = update_script_path_wstr_ptr;
-  ShExecInfo.nShow = SW_HIDE;
-
-  return ShellExecuteEx(&ShExecInfo);
-#elif XE_PLATFORM_LINUX
-  std::filesystem::permissions(update_script_filename,
-                               std::filesystem::perms::owner_exec |
-                                   std::filesystem::perms::group_exec |
-                                   std::filesystem::perms::others_exec,
-                               std::filesystem::perm_options::add);
-
-  std::string exec = fmt::format("./{}", update_script_filename);
-  // Doesn't return
-  execlp("/bin/bash", "/bin/bash", "-c", exec.c_str(), nullptr);
-  return false;
-#endif
 }
 
 }  // namespace app

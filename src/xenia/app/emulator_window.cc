@@ -209,7 +209,7 @@ EmulatorWindow::EmulatorWindow(Emulator* emulator,
                 ")";
 
   updater_ =
-      std::make_shared<Updater>(XE_BUILD_REMOTE_OWNER, XE_BUILD_REMOTE_NAME);
+      std::make_shared<Updater>("AdrianCassar", "xenia-canary");
 
   LoadRecentlyLaunchedTitles();
 }
