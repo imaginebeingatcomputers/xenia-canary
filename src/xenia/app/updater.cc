@@ -21,6 +21,7 @@
 #endif
 
 #include "third_party/fmt/include/fmt/format.h"
+#include "third_party/minizip-ng/compat/unzip.h"
 #include "third_party/rapidjson/include/rapidjson/document.h"
 #include "third_party/rapidjson/include/rapidjson/rapidjson.h"
 
@@ -738,19 +739,29 @@ bool Updater::UpdateAndRestart(const std::filesystem::path& zip_path) {
 
   const auto backup_folder_name = "canary_netplay_old";
 
-  int zip_err = 0;
-  zip* archive = zip_open(zip_path.c_str(), 0, &zip_err);
-  struct zip_stat stat;
+  const auto zip_path_str = zip_path.string();
+  unzFile archive = unzOpen(zip_path_str.c_str());
+  if (!archive) {
+    return false;
+  }
 
-  zip_stat_init(&stat);
-  zip_stat(archive, executable_path.filename().c_str(), 0, &stat);
+  std::vector<char> buffer;
+  // Locate the executable entry by name (case sensitive) and read it out.
+  if (unzLocateFile(archive, executable_filename.c_str(), 1) == UNZ_OK &&
+      unzOpenCurrentFile(archive) == UNZ_OK) {
+    unz_file_info64 file_info = {};
+    unzGetCurrentFileInfo64(archive, &file_info, nullptr, 0, nullptr, 0, nullptr,
+                            0);
+    buffer.resize(file_info.uncompressed_size);
+    unzReadCurrentFile(archive, buffer.data(),
+                       static_cast<uint32_t>(buffer.size()));
+    unzCloseCurrentFile(archive);
+  }
+  unzClose(archive);
 
-  std::vector<char> buffer(stat.size);
-
-  zip_file* file = zip_fopen(archive, executable_path.filename().c_str(), 0);
-  zip_fread(file, buffer.data(), stat.size);
-  zip_fclose(file);
-  zip_close(archive);
+  if (buffer.empty()) {
+    return false;
+  }
 
   std::filesystem::path backup_exe_path = executable_path.string() + ".old";
   std::filesystem::rename(executable_path.string(), backup_exe_path, ec);

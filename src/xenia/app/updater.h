@@ -18,7 +18,6 @@
 #include <vector>
 
 #include "third_party/libcurl/include/curl/system.h"
-#include "third_party/libzip/lib/zip.h"
 
 namespace xe {
 namespace app {

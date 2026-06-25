@@ -886,6 +886,89 @@ if(NOT WIN32)
 endif()
 
 # ==============================================================================
-# libzip
+# minizip-ng
 # ==============================================================================
-add_subdirectory(libzip)
+# zlib-ng is the only enabled compression backend; bzip2/lzma/zstd/ppmd are
+# left out. All encryption (pkcrypt/wzaes) and crypto backends (bcrypt and
+# friends) are disabled, so no platform crypto provider is linked.
+#
+# Generate mz_config.h (normally produced by minizip-ng's own CMake).
+include(CheckIncludeFile)
+include(CheckFunctionExists)
+include(CheckTypeSize)
+check_include_file(dirent.h     HAVE_DIRENT_H)
+check_include_file(sys/dirent.h HAVE_SYS_DIRENT_H)
+check_include_file(inttypes.h   HAVE_INTTYPES_H)
+check_include_file(stdint.h     HAVE_STDINT_H)
+set(CMAKE_EXTRA_INCLUDE_FILES)
+if(HAVE_DIRENT_H)
+  list(APPEND CMAKE_EXTRA_INCLUDE_FILES dirent.h)
+endif()
+if(HAVE_SYS_DIRENT_H)
+  list(APPEND CMAKE_EXTRA_INCLUDE_FILES sys/dirent.h)
+endif()
+check_type_size("DIR*" PDIR)
+set(CMAKE_EXTRA_INCLUDE_FILES)
+check_type_size(off64_t OFF64_T)
+check_function_exists(fseeko  HAVE_FSEEKO)
+check_function_exists(symlink HAVE_SYMLINK)
+check_function_exists(readlink HAVE_READLINK)
+configure_file(
+  minizip-ng/mz_config.h.cmakein
+  ${CMAKE_CURRENT_BINARY_DIR}/minizip-ng/mz_config.h
+  @ONLY NEWLINE_STYLE UNIX
+)
+
+add_library(minizip-ng STATIC
+  minizip-ng/mz_crypt.c
+  minizip-ng/mz_os.c
+  minizip-ng/mz_strm.c
+  minizip-ng/mz_strm_buf.c
+  minizip-ng/mz_strm_mem.c
+  minizip-ng/mz_strm_split.c
+  minizip-ng/mz_strm_zlib.c
+  minizip-ng/mz_zip.c
+  minizip-ng/mz_zip_rw.c
+  # Compatibility layer (classic zip.h/unzip.h API).
+  minizip-ng/compat/ioapi.c
+  minizip-ng/compat/unzip.c
+  minizip-ng/compat/zip.c
+)
+if(WIN32)
+  target_sources(minizip-ng PRIVATE
+    minizip-ng/mz_os_win32.c
+    minizip-ng/mz_strm_os_win32.c
+  )
+  target_compile_definitions(minizip-ng PRIVATE
+    _CRT_SECURE_NO_DEPRECATE
+    _CRT_NONSTDC_NO_DEPRECATE
+  )
+else()
+  target_sources(minizip-ng PRIVATE
+    minizip-ng/mz_os_posix.c
+    minizip-ng/mz_strm_os_posix.c
+  )
+  target_compile_definitions(minizip-ng PRIVATE
+    _POSIX_C_SOURCE=200809L
+    _DEFAULT_SOURCE
+  )
+  if(HAVE_OFF64_T)
+    target_compile_definitions(minizip-ng PRIVATE
+      __USE_LARGEFILE64
+      _LARGEFILE64_SOURCE
+    )
+  endif()
+endif()
+target_compile_definitions(minizip-ng PUBLIC
+  # Use zlib-ng (non-compat, zng_ prefixed API) as the compression backend.
+  HAVE_ZLIB
+  # No encryption methods and no crypto provider are compiled in.
+  MZ_ZIP_NO_ENCRYPTION
+  MZ_ZIP_NO_CRYPTO
+)
+target_include_directories(minizip-ng PUBLIC
+  minizip-ng
+  minizip-ng/compat
+  ${CMAKE_CURRENT_BINARY_DIR}/minizip-ng
+)
+target_link_libraries(minizip-ng PUBLIC zlib-ng)

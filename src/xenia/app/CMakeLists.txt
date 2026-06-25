@@ -78,7 +78,7 @@ target_link_libraries(xenia-app PRIVATE
   snappy
   xxhash
   libcurl
-  libzip
+  minizip-ng
 )
 
 # Vulkan/SPIR-V backends (not macOS)
